@@ -1,7 +1,7 @@
 package cron
 
 import (
-	"io/ioutil"
+	"io"
 	"log"
 	"reflect"
 	"sync"
@@ -57,13 +57,13 @@ func TestChainRecover(t *testing.T) {
 	})
 
 	t.Run("Recovering JobWrapper recovers", func(t *testing.T) {
-		NewChain(Recover(PrintfLogger(log.New(ioutil.Discard, "", 0)))).
+		NewChain(Recover(PrintfLogger(log.New(io.Discard, "", 0)))).
 			Then(panickingJob).
 			Run()
 	})
 
 	t.Run("composed with the *IfStillRunning wrappers", func(t *testing.T) {
-		NewChain(Recover(PrintfLogger(log.New(ioutil.Discard, "", 0)))).
+		NewChain(Recover(PrintfLogger(log.New(io.Discard, "", 0)))).
 			Then(panickingJob).
 			Run()
 	})
@@ -71,6 +71,7 @@ func TestChainRecover(t *testing.T) {
 
 type countJob struct {
 	m       sync.Mutex
+	cond    *sync.Cond
 	started int
 	done    int
 	delay   time.Duration
@@ -78,11 +79,15 @@ type countJob struct {
 
 func (j *countJob) Run() {
 	j.m.Lock()
+	if j.cond == nil {
+		j.cond = sync.NewCond(&j.m)
+	}
 	j.started++
 	j.m.Unlock()
 	time.Sleep(j.delay)
 	j.m.Lock()
 	j.done++
+	j.cond.Broadcast()
 	j.m.Unlock()
 }
 
@@ -96,6 +101,26 @@ func (j *countJob) Done() int {
 	defer j.m.Unlock()
 	j.m.Lock()
 	return j.done
+}
+
+// WaitDone blocks until j.Done() >= n or timeout elapses.
+func (j *countJob) WaitDone(n int, timeout time.Duration) bool {
+	j.m.Lock()
+	if j.cond == nil {
+		j.cond = sync.NewCond(&j.m)
+	}
+	deadline := time.Now().Add(timeout)
+	for j.done < n {
+		if time.Now().After(deadline) {
+			j.m.Unlock()
+			return false
+		}
+		j.m.Unlock()
+		time.Sleep(time.Millisecond)
+		j.m.Lock()
+	}
+	j.m.Unlock()
+	return true
 }
 
 func TestChainDelayIfStillRunning(t *testing.T) {
@@ -118,9 +143,8 @@ func TestChainDelayIfStillRunning(t *testing.T) {
 			time.Sleep(time.Millisecond)
 			go wrappedJob.Run()
 		}()
-		time.Sleep(3 * time.Millisecond) // Give both jobs 3ms to complete.
-		if c := j.Done(); c != 2 {
-			t.Errorf("expected job run twice, immediately, got %d", c)
+		if !j.WaitDone(2, 100*time.Millisecond) {
+			t.Errorf("expected job run twice, immediately, got %d", j.Done())
 		}
 	})
 
@@ -172,9 +196,8 @@ func TestChainSkipIfStillRunning(t *testing.T) {
 			time.Sleep(time.Millisecond)
 			go wrappedJob.Run()
 		}()
-		time.Sleep(3 * time.Millisecond) // Give both jobs 3ms to complete.
-		if c := j.Done(); c != 2 {
-			t.Errorf("expected job run twice, immediately, got %d", c)
+		if !j.WaitDone(2, 100*time.Millisecond) {
+			t.Errorf("expected job run twice, immediately, got %d", j.Done())
 		}
 	})
 
