@@ -1,24 +1,21 @@
-[![GoDoc](http://godoc.org/github.com/robfig/cron?status.png)](http://godoc.org/github.com/robfig/cron)
-[![Build Status](https://travis-ci.org/robfig/cron.svg?branch=master)](https://travis-ci.org/robfig/cron)
-
 # cron
 
 Cron V3 has been released!
 
 To download the specific tagged release, run:
 ```bash
-go get github.com/robfig/cron/v3@v3.0.0
+go get github.com/simcosoft/cron/v3@v3.0.0
 ```
 Import it in your program as:
 ```go
-import "github.com/robfig/cron/v3"
+import "github.com/simcosoft/cron/v3"
 ```
 It requires Go 1.11 or later due to usage of Go Modules.
 
 Refer to the documentation here:
-http://godoc.org/github.com/robfig/cron
+https://pkg.go.dev/github.com/simcosoft/cron/v3
 
-The rest of this document describes the the advances in v3 and a list of
+The rest of this document describes the advances in v3 and a list of
 breaking changes for users that wish to upgrade from an earlier version.
 
 ## Upgrading to v3 (June 2019)
@@ -33,14 +30,14 @@ the timezone support, and fixes a number of bugs.
 New features:
 
 - Support for Go modules. Callers must now import this library as
-  `github.com/robfig/cron/v3`, instead of `gopkg.in/...`
+  `github.com/simcosoft/cron/v3`, instead of `gopkg.in/...`
 
 - Fixed bugs:
-  - 0f01e6b parser: fix combining of Dow and Dom (#70)
-  - dbf3220 adjust times when rolling the clock forward to handle non-existent midnight (#157)
-  - eeecf15 spec_test.go: ensure an error is returned on 0 increment (#144)
-  - 70971dc cron.Entries(): update request for snapshot to include a reply channel (#97)
-  - 1cba5e6 cron: fix: removing a job causes the next scheduled job to run too late (#206)
+  - [0f01e6b](https://github.com/robfig/cron/commit/0f01e6b) parser: fix combining of Dow and Dom ([#70](https://github.com/robfig/cron/issues/70))
+  - [dbf3220](https://github.com/robfig/cron/commit/dbf3220) adjust times when rolling the clock forward to handle non-existent midnight ([#157](https://github.com/robfig/cron/issues/157))
+  - [eeecf15](https://github.com/robfig/cron/commit/eeecf15) spec_test.go: ensure an error is returned on 0 increment ([#144](https://github.com/robfig/cron/issues/144))
+  - [70971dc](https://github.com/robfig/cron/commit/70971dc) cron.Entries(): update request for snapshot to include a reply channel ([#97](https://github.com/robfig/cron/issues/97))
+  - [1cba5e6](https://github.com/robfig/cron/commit/1cba5e6) cron: fix: removing a job causes the next scheduled job to run too late ([#206](https://github.com/robfig/cron/issues/206))
 
 - Standard cron spec parsing by default (first field is "minute"), with an easy
   way to opt into the seconds field (quartz-compatible). Although, note that the
@@ -87,7 +84,7 @@ cron.New(cron.WithParser(cron.NewParser(
   UPDATING: No update is required.
 
 - By default, cron will no longer recover panics in jobs that it runs.
-  Recovering can be surprising (see issue #192) and seems to be at odds with
+  Recovering can be surprising (see [issue #192](https://github.com/robfig/cron/issues/192)) and seems to be at odds with
   typical behavior of libraries. Relatedly, the `cron.WithPanicLogger` option
   has been removed to accommodate the more general JobWrapper type.
 
@@ -118,8 +115,13 @@ There are two cron spec formats in common usage:
   jobs in Java software
 
 [the Cron wikipedia page]: https://en.wikipedia.org/wiki/Cron
-[the Quartz Scheduler]: http://www.quartz-scheduler.org/documentation/quartz-2.3.0/tutorials/tutorial-lesson-06.html
+[the Quartz Scheduler]: https://www.quartz-scheduler.org/documentation/quartz-2.3.0/tutorials/tutorial-lesson-06.html
+
 
 The original version of this package included an optional "seconds" field, which
 made it incompatible with both of these formats. Now, the "standard" format is
-the default format accepted, and the Quartz format is opt-in.
+the default format accepted, and the Quartz format is opt-in. 
+
+[crontab.guru] is a convenient calculator for building and checking standard cron expressions.
+
+[crontab.guru]: https://crontab.guru
